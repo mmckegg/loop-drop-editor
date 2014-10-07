@@ -83,14 +83,29 @@ RawEditor.prototype.init = function(){
       if (data){
         try {
           object = JSON.parse(data || '{}')
+          var newValue = JSMN.stringify(object || {})
+          if (textEditor.getValue() != newValue){
+            textEditor.setValue(newValue,-1)
+          }
         } catch (ex) {}
       }
-      textEditor.setValue(JSMN.stringify(object || {}),-1)
     }
     updating = lastUpdateValue
   }
 
-  textEditor.on('blur', update)
+  var blurTimer = null
+  textEditor.on('focus', function(){
+    clearTimeout(blurTimer)
+  })
+
+  textEditor.on('blur', function(){
+    clearTimeout(blurTimer)
+    blurTimer = setTimeout(function(){
+      if (!textEditor.isFocused()){
+        update()
+      }
+    }, 100)
+  })
 
   var saveTimer = null
   textEditor.on('change', function(){
