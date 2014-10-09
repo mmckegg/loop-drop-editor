@@ -61,7 +61,7 @@ RawEditor.prototype.init = function(){
   var updating = false
 
   function save(){
-    var value = textEditor.getValue()
+    var value = textEditor.session.getValue()
     if (!updating && value != lastValue && currentFile){
       lastValue = value
       try {
@@ -80,15 +80,14 @@ RawEditor.prototype.init = function(){
     var data = currentFile ? currentFile() : null
     if (data !== currentTransaction){
       var object = {}
-      if (data){
-        try {
-          object = JSON.parse(data || '{}')
-          var newValue = JSMN.stringify(object || {})
-          if (textEditor.getValue() != newValue){
-            textEditor.setValue(newValue,-1)
-          }
-        } catch (ex) {}
-      }
+      data = typeof data === 'string' ? data.trim() : null
+      try {
+        object = JSON.parse(data || '{}')
+        var newValue = JSMN.stringify(object || {})
+        if (textEditor.session.getValue() != newValue){
+          textEditor.session.setValue(newValue,-1)
+        }
+      } catch (ex) {}
     }
     updating = lastUpdateValue
   }
@@ -122,7 +121,7 @@ RawEditor.prototype.init = function(){
 RawEditor.prototype.update = function(prev, elem){
   this.editor = prev.editor
 
-  if (!this.editor.isFocused() || prev.file !== elem.file){
+  if (!this.editor.isFocused() || prev.file !== this.file){
     this.editor.setFile(this.file)
   }
   return elem
