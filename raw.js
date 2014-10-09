@@ -11,6 +11,9 @@ var watch = require('observ/watch')
 module.exports = RawEditor
 
 function RawEditor(file){
+  if (!(this instanceof RawEditor)){
+    return new RawEditor(file)
+  }
   this.file = file
 }
 
