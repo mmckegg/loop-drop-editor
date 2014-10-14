@@ -10,11 +10,12 @@ var watch = require('observ/watch')
 
 module.exports = RawEditor
 
-function RawEditor(file){
+function RawEditor(fileObject){
   if (!(this instanceof RawEditor)){
-    return new RawEditor(file)
+    return new RawEditor(fileObject)
   }
-  this.file = file
+  this.fileObject = fileObject
+  this.file = fileObject && fileObject.file
 }
 
 RawEditor.prototype.type = 'Widget'
@@ -39,60 +40,47 @@ RawEditor.prototype.init = function(){
   textEditor.renderer.setShowGutter(false)
 
   var currentFile = null
-  var release = null
-  textEditor.setFile = function(file){
-    if (currentFile !== file){
-      clearTimeout(saveTimer)
+  var self = this
 
-      if (release){
-        release()
-        release = null
-      }
+  var currentTransaction = NO_TRANSACTION
+  var currentSaveTransaction = NO_TRANSACTION
 
-      if (file){
-        currentFile = file
-        textEditor._currentFile = file
-        release = watch(file, update)
-      }
+  textEditor.setFile = function(fileObject){
+    clearTimeout(saveTimer)
 
+    if (self.release){
+      self.release()
+      self.release = null
+    }
+
+    currentFile = fileObject
+
+    if (fileObject){
+      self.release = watch(fileObject, update)
     }
   }
   //textEditor.setSize('100%', '100%')
 
-  var lastValue = null
-  var currentTransaction = NO_TRANSACTION
-  var updating = false
-
   function save(){
     var value = textEditor.session.getValue()
-    if (!updating && value != lastValue && currentFile){
-      lastValue = value
+    if (currentFile){
       try {
-        var lastTransaction = currentTransaction
-        var object = JSON.stringify(JSMN.parse(value))
-        currentTransaction = object
+        var object = JSMN.parse(value)
+        currentSaveTransaction = object
         currentFile.set(object)
-        currentTransaction = lastTransaction
+        currentSaveTransaction = NO_TRANSACTION
       } catch (ex) {}
     }
   }
 
   function update(){
-    var lastUpdateValue = updating
-    updating = true
     var data = currentFile ? currentFile() : null
-    if (data !== currentTransaction){
-      var object = {}
-      data = typeof data === 'string' ? data.trim() : null
-      try {
-        object = JSON.parse(data || '{}')
-        var newValue = JSMN.stringify(object || {})
-        if (textEditor.session.getValue() != newValue){
-          textEditor.session.setValue(newValue,-1)
-        }
-      } catch (ex) {}
+    if (data && currentSaveTransaction !== data._diff && currentSaveTransaction !== data){
+      var newValue = JSMN.stringify(data || {})
+      currentTransaction = newValue
+      textEditor.session.setValue(newValue, -1)
+      currentTransaction = NO_TRANSACTION
     }
-    updating = lastUpdateValue
   }
 
   var blurTimer = null
@@ -111,11 +99,13 @@ RawEditor.prototype.init = function(){
 
   var saveTimer = null
   textEditor.on('change', function(){
-    clearTimeout(saveTimer)
-    saveTimer = setTimeout(save, 100)
+    if (currentTransaction === NO_TRANSACTION){
+      clearTimeout(saveTimer)
+      saveTimer = setTimeout(save, 100)
+    }
   })
 
-  textEditor.setFile(this.file)
+  textEditor.setFile(this.fileObject)
 
   element.appendChild(el)
   return element
@@ -123,9 +113,16 @@ RawEditor.prototype.init = function(){
 
 RawEditor.prototype.update = function(prev, elem){
   this.editor = prev.editor
+  this.release = prev.release
 
-  if (!this.editor.isFocused() || prev.file !== this.file){
-    this.editor.setFile(this.file)
+  if (prev.file !== this.file){
+    this.editor.setFile(this.fileObject)
   }
   return elem
+}
+
+RawEditor.prototype.destroy = function(elem){
+  this.editor.destroy()
+  this.release && this.release()
+  this.release = null
 }
