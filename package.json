@@ -18,6 +18,7 @@
   "homepage": "https://github.com/mmckegg/loop-drop-editor",
   "dependencies": {
     "brace": "^0.3.0",
+    "deep-equal": "^0.2.1",
     "notevil": "^0.8.1"
   }
 }

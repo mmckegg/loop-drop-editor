@@ -3,6 +3,7 @@ var JSMN = require('./lib/jsmn.js')
 var ace = require('brace')
 require('brace/mode/javascript');
 require('brace/theme/ambiance');
+var deepEqual = require('deep-equal')
 
 var NO_TRANSACTION = {}
 
@@ -75,7 +76,7 @@ RawEditor.prototype.init = function(){
 
   function update(){
     var data = currentFile ? currentFile() : null
-    if (data && currentSaveTransaction !== data._diff && currentSaveTransaction !== data){
+    if (data && currentSaveTransaction !== data._diff && !deepEqual(currentSaveTransaction,data)){
       var newValue = JSMN.stringify(data || {})
       currentTransaction = newValue
       textEditor.session.setValue(newValue, -1)
