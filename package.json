@@ -1,6 +1,6 @@
 {
   "name": "loop-drop-editor",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Editor for Loop Drop objects.",
   "main": "index.js",
   "scripts": {
